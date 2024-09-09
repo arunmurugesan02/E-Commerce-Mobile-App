@@ -162,9 +162,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: normalize(10),
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#ddd',
     marginBottom: normalize(10),
+    marginTop:normalize(10)
   },
   itemImage: {
     width: normalize(80),
@@ -192,8 +193,7 @@ const styles = StyleSheet.create({
   summaryTotal: {
     marginTop: normalize(10),
     paddingVertical: normalize(10),
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
+    
   },
   totalText: {
     fontSize: 18,

@@ -1,11 +1,10 @@
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import * as React from 'react';
-import {NavigationContainer} from '@react-navigation/native';
-import {createStackNavigator} from '@react-navigation/stack';
-import ProductPage from './src/screens/ProductPage';
-import ProductDetailsPage from './src/screens/ProductDetailsPage';
 import CartPage from './src/screens/CartPage';
 import CheckoutPage from './src/screens/CheckoutPage';
 import HomePage from './src/screens/Home';
+import ProductDetailsPage from './src/screens/ProductDetailsPage';
 import ThankYouPage from './src/screens/ThankYouPage';
 
 const Stack = createStackNavigator();

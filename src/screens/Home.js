@@ -7,6 +7,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,9 +15,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Carousel from 'react-native-snap-carousel'; // Add carousel package
+import Carousel from 'react-native-snap-carousel';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import normalize from '../_helpers/normalizer';
 import {categoriesList} from '../constants/constants';
 
 const {width, height} = Dimensions.get('window');
@@ -29,6 +29,8 @@ const HomePage = ({navigation}) => {
   const [cartCount, setCartCount] = useState(0);
   const [carouselData, setCarouselData] = useState([]);
   const [activeCategory, setActiveCategory] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [sortOption, setSortOption] = useState('price');
 
   const fetchProducts = async () => {
     try {
@@ -39,6 +41,7 @@ const HomePage = ({navigation}) => {
       setError('Failed to load products');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -56,16 +59,21 @@ const HomePage = ({navigation}) => {
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.title.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredProducts = products
+    .filter(product =>
+      product.title.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+    .sort((a, b) => {
+      if (sortOption === 'price') {
+        return a.price - b.price;
+      } else if (sortOption === 'rating') {
+        return b.rating.rate - a.rating.rate;
+      }
+      return 0;
+    });
 
   const renderProduct = ({item}) => (
-    <TouchableOpacity
-      style={styles.productItem}
-      onPress={() =>
-        navigation.navigate('ProductDetailsPage', {product: item})
-      }>
+    <View style={styles.productCard}>
       <Image source={{uri: item.image}} style={styles.productImage} />
       <View style={styles.productInfo}>
         <Text style={styles.productTitle}>{item.title}</Text>
@@ -73,26 +81,42 @@ const HomePage = ({navigation}) => {
         <Text style={styles.productRating}>
           ⭐ {item.rating ? item.rating.rate : 'No rating'}
         </Text>
+        <TouchableOpacity
+          style={styles.viewButton}
+          onPress={() =>
+            navigation.navigate('ProductDetailsPage', {product: item})
+          }>
+          <Text style={styles.viewButtonText}>View Details</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderBanner = ({item}) => (
+    <TouchableOpacity
+      style={styles.bannerCard}
+      onPress={() =>
+        navigation.navigate('ProductDetailsPage', {product: item})
+      }>
+      <Image source={{uri: item.image}} style={styles.bannerImage} />
+      <View style={styles.bannerOverlay}>
+        <Text style={styles.bannerText}>Discover More</Text>
+        <TouchableOpacity
+          style={styles.bannerButton}
+          onPress={() =>
+            navigation.navigate('ProductDetailsPage', {product: item})
+          }>
+          <Text style={styles.bannerButtonText}>Shop Now</Text>
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
-
-  const renderBanner = ({item}) => {
-    return (
-      <TouchableOpacity
-        onPress={() =>
-          navigation.navigate('ProductDetailsPage', {product: item})
-        }>
-        <Image source={{uri: item.image}} style={styles.bannerImage} />
-      </TouchableOpacity>
-    );
-  };
 
   const categories = async category => {
     try {
       const response =
         category === 'all'
-          ? await axios.get(`https://fakestoreapi.com/products`)
+          ? await axios.get('https://fakestoreapi.com/products')
           : await axios.get(
               `https://fakestoreapi.com/products/category/${category}`,
             );
@@ -104,10 +128,11 @@ const HomePage = ({navigation}) => {
   const renderCategoryItem = ({item}) => (
     <TouchableOpacity
       style={[
-        styles.categoryItem,
+        styles.categoryCard,
         activeCategory === item.id && styles.activeCategory,
       ]}
       onPress={() => categories(item.id)}>
+      <Image source={{uri: item?.image}} style={styles.categoryImage} />
       <Text
         style={[
           styles.categoryText,
@@ -118,6 +143,11 @@ const HomePage = ({navigation}) => {
     </TouchableOpacity>
   );
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchProducts();
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       fetchProducts();
@@ -126,8 +156,11 @@ const HomePage = ({navigation}) => {
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.searchContainer}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
+      <View style={styles.header}>
         <TextInput
           style={styles.searchInput}
           placeholder="Search products..."
@@ -137,7 +170,7 @@ const HomePage = ({navigation}) => {
         <TouchableOpacity
           onPress={() => navigation.navigate('CartPage')}
           style={styles.cartIconContainer}>
-          <Icon name="shopping-cart" size={30} color="#000" />
+          <Icon name="shopping-cart" size={30} color="#fff" />
           {cartCount > 0 && (
             <View style={styles.cartCountContainer}>
               <Text style={styles.cartCountText}>{cartCount}</Text>
@@ -148,7 +181,7 @@ const HomePage = ({navigation}) => {
 
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007BFF" />
+          <ActivityIndicator size="large" color="#FF5722" />
         </View>
       )}
 
@@ -160,22 +193,22 @@ const HomePage = ({navigation}) => {
 
       {!loading && !error && (
         <>
-          {/* Hero Banner Carousel */}
-          <View style={{marginVertical: 30}}>
+          <View style={styles.carouselContainer}>
             <Carousel
               data={carouselData}
               renderItem={renderBanner}
               sliderWidth={width}
-              activeSlideAlignment="center"
-              itemWidth={width * 0.7}
+              itemWidth={width * 0.85}
               loop
               autoplay
-              autoplayInterval={3000}
+              autoplayInterval={4000}
+              paginationStyle={styles.pagination}
+              dotStyle={styles.dot}
+              activeDotStyle={styles.activeDot}
             />
           </View>
 
-          {/* Category Section */}
-          <View style={styles.categoryContainer}>
+          <View style={styles.categorySection}>
             <Text style={styles.sectionTitle}>Categories</Text>
             <FlatList
               horizontal
@@ -185,8 +218,25 @@ const HomePage = ({navigation}) => {
             />
           </View>
 
-          {/* Product List */}
-          <View style={styles.productListContainer}>
+          <View style={styles.featuredSection}>
+            <View style={styles.sortOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.sortButton,
+                  sortOption === 'price' && styles.activeSortButton,
+                ]}
+                onPress={() => setSortOption('price')}>
+                <Text style={styles.sortButtonText}>Price</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.sortButton,
+                  sortOption === 'rating' && styles.activeSortButton,
+                ]}
+                onPress={() => setSortOption('rating')}>
+                <Text style={styles.sortButtonText}>Rating</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.sectionTitle}>Featured Products</Text>
             <FlatList
               data={filteredProducts}
@@ -197,8 +247,27 @@ const HomePage = ({navigation}) => {
               }
             />
           </View>
+
+          <View style={styles.promotionalSection}>
+            <Text style={styles.sectionTitle}>Special Offers</Text>
+            <Image
+              source={{uri: 'https://via.placeholder.com/300x150'}}
+              style={styles.promoImage}
+            />
+          </View>
         </>
       )}
+
+      <View style={styles.footer}>
+        <View style={styles.footerContent}>
+          <Text style={styles.footerText}>© 2024 My E-Commerce App</Text>
+          <View style={styles.socialIcons}>
+            <Icon name="facebook" size={20} color="#333" />
+            <Icon name="twitter" size={20} color="#333" />
+            <Icon name="instagram" size={20} color="#333" />
+          </View>
+        </View>
+      </View>
     </ScrollView>
   );
 };
@@ -206,36 +275,38 @@ const HomePage = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f0f0f0',
   },
-  searchContainer: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: normalize(15),
-    backgroundColor: '#fff',
+    padding: 16,
+    backgroundColor: '#333',
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
   searchInput: {
     flex: 1,
-    height: normalize(40),
+    height: 40,
     borderColor: '#ddd',
     borderWidth: 1,
-    borderRadius: normalize(5),
-    paddingHorizontal: normalize(10),
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    color: '#333',
   },
   cartIconContainer: {
-    marginLeft: normalize(10),
+    marginLeft: 10,
     position: 'relative',
   },
   cartCountContainer: {
     position: 'absolute',
-    top: normalize(-5),
-    right: normalize(-10),
-    backgroundColor: '#FF0000',
+    top: -5,
+    right: -10,
+    backgroundColor: '#FF5722',
     borderRadius: 12,
-    width: normalize(24),
-    height: normalize(24),
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -244,64 +315,99 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   carouselContainer: {
-    height: normalize(200),
-    marginBottom: normalize(15),
+    height: 200,
+    marginBottom: 15,
+  },
+  bannerCard: {
+    position: 'relative',
+    borderRadius: 10,
+    overflow: 'hidden',
   },
   bannerImage: {
-    width: normalize(312),
-    height: normalize(212),
-    borderRadius: 8,
-    resizeMode: 'stretch',
+    width: width * 0.85,
+    height: 200,
+    resizeMode: 'cover',
   },
-  categoryContainer: {
-    paddingHorizontal: normalize(15),
-    marginBottom: normalize(15),
+  bannerOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 10,
+    alignItems: 'center',
   },
-  sectionTitle: {
-    fontSize: 18,
+  bannerText: {
+    fontSize: 20,
+    color: '#fff',
     fontWeight: 'bold',
-    marginBottom: normalize(10),
-    color: '#333',
   },
-  categoryItem: {
+  bannerButton: {
+    backgroundColor: '#FF5722',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  bannerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  categorySection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  categoryCard: {
     backgroundColor: '#fff',
     borderRadius: 8,
-    padding: normalize(10),
-    marginRight: normalize(10),
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    padding: 10,
+    marginRight: 10,
+    alignItems: 'center',
     elevation: 3,
+    marginTop:15
+  },
+
+  categoryImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginBottom: 5,
   },
   categoryText: {
     fontSize: 14,
-    color: '#333',
   },
-  productListContainer: {
-    paddingHorizontal: normalize(15),
+  activeCategory: {
+    backgroundColor: '#FF5722',
+    color: '#fff',
   },
-  productItem: {
+  featuredSection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  productCard: {
     backgroundColor: '#fff',
-    marginBottom: normalize(15),
-    padding: normalize(15),
+    marginBottom: 15,
     borderRadius: 10,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 3},
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 5,
     flexDirection: 'row',
+    marginTop: 20,
   },
   productImage: {
-    width: normalize(120),
-    height: normalize(120),
+    width: 120,
+    height: 120,
     borderRadius: 10,
-    marginRight: normalize(15),
+    marginRight: 15,
   },
   productInfo: {
     flex: 1,
     justifyContent: 'center',
+    padding: 10,
   },
   productTitle: {
     fontSize: 18,
@@ -310,16 +416,27 @@ const styles = StyleSheet.create({
   },
   productPrice: {
     fontSize: 16,
-    color: '#007BFF',
-    marginVertical: normalize(5),
+    color: '#FF5722',
+    marginVertical: 5,
   },
   productRating: {
     fontSize: 14,
-    color: '#FF9900',
+    color: '#FFC107',
+  },
+  viewButton: {
+    marginTop: 10,
+    backgroundColor: '#FF5722',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+  },
+  viewButtonText: {
+    color: '#fff',
+    textAlign: 'center',
   },
   emptyMessage: {
     textAlign: 'center',
-    marginTop: normalize(20),
+    marginTop: 20,
     fontSize: 16,
     color: '#888',
   },
@@ -332,14 +449,76 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: normalize(20),
+    marginTop: 20,
   },
   errorText: {
     fontSize: 16,
     color: 'red',
   },
-  activeCategory: {
-    backgroundColor: 'green',
+  pagination: {
+    bottom: 0,
+  },
+  dot: {
+    backgroundColor: '#fff',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  activeDot: {
+    backgroundColor: '#FF5722',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  promotionalSection: {
+    marginTop: 20,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  promoImage: {
+    width: width * 0.9,
+    height: 150,
+    borderRadius: 8,
+    resizeMode: 'cover',
+  },
+  footer: {
+    padding: 16,
+    backgroundColor: '#333',
+    alignItems: 'center',
+  },
+  footerContent: {
+    alignItems: 'center',
+  },
+  footerText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  socialIcons: {
+    flexDirection: 'row',
+    marginTop: 10,
+  },
+  socialIcon: {
+    marginHorizontal: 10,
+  },
+  sortOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  sortButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    borderColor: '#ddd',
+    borderWidth: 1,
+  },
+  sortButtonText: {
+    color: '#333',
+  },
+  activeSortButton: {
+    backgroundColor: '#FF5722',
+    borderColor: '#FF5722',
   },
 });
 
