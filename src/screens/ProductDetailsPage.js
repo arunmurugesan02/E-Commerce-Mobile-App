@@ -16,7 +16,7 @@ import normalize from '../_helpers/normalizer';
 const ProductDetailsPage = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const {product} = route.params; // Get product data from navigation params
+  const {product, btnkey} = route.params; // Get product data from navigation params
 
   const [cartItems, setCartItems] = useState([]);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -80,9 +80,12 @@ const ProductDetailsPage = () => {
         <Text style={styles.productTitle}>{product.title}</Text>
         <Text style={styles.productPrice}>${product.price}</Text>
         <Text style={styles.productDescription}>{product.description}</Text>
-        <TouchableOpacity style={styles.addToCartButton} onPress={addToCart}>
+        {
+          !btnkey && <TouchableOpacity style={styles.addToCartButton} onPress={addToCart}>
           <Text style={styles.buttonText}>Add to Cart</Text>
         </TouchableOpacity>
+        }
+        
       </View>
       <View style={styles.relatedProductsContainer}>
         <Text style={styles.relatedProductsTitle}>You may also like</Text>

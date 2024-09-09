@@ -12,9 +12,7 @@ const normalize = (size, landscape = false) => {
   const newSize = landscape ? size * hscale : size * wscale;
   if (Platform.OS === 'ios') {
     return Math.round(PixelRatio.roundToNearestPixel(newSize));
-  }
-  console.log('newSize',newSize);
-  
+  }  
   return Math.round(PixelRatio.roundToNearestPixel(newSize)) - 2;
 };
 

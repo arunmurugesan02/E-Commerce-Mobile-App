@@ -34,7 +34,7 @@ const CheckoutPage = ({ navigation }) => {
 
     try {
       // Normally, you would send order data to an API here
-      Alert.alert('Order Placed', `Thank you, ${name}. Your order has been placed!`, [
+      Alert.alert('Order Placed', `Thank you ${name}. Your order has been placed!`, [
         { text: 'OK', onPress: () => navigation.navigate('ThankYouPage') },
       ]);
 
@@ -128,6 +128,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: normalize(10),
     marginBottom: normalize(15),
     backgroundColor: '#fff',
+    color:'#000000'
   },
   placeOrderButton: {
     backgroundColor: '#007BFF',

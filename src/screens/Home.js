@@ -1,22 +1,23 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useFocusEffect} from '@react-navigation/native';
+import axios from 'axios';
+import React, {useCallback, useState} from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Dimensions,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import axios from 'axios';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Carousel from 'react-native-snap-carousel'; // Add carousel package
-import {useFocusEffect} from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import normalize from '../_helpers/normalizer';
+import {categoriesList} from '../constants/constants';
 
 const {width, height} = Dimensions.get('window');
 
@@ -26,45 +27,34 @@ const HomePage = ({navigation}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cartCount, setCartCount] = useState(0);
-  const [banners, setBanners] = useState([
-    {id: 1, image: require('../../assets/FirstImage.jpeg')},
-    {id: 2, image: require('../../assets/SecondImage.jpeg')},
-    {id: 3, image: require('../../assets/ThirdImage.jpeg')},
-    {id: 4, image: require('../../assets/FourthImage.jpeg')},
-    // Add more banners as needed
-  ]);
+  const [carouselData, setCarouselData] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('');
 
-  useFocusEffect(
-    useCallback(() => {
-      const fetchProducts = async () => {
-        try {
-          const response = await axios.get('https://fakestoreapi.com/products');
-          setProducts(response.data);
-        } catch (error) {
-          setError('Failed to load products');
-        } finally {
-          setLoading(false);
-        }
-      };
+  const fetchProducts = async () => {
+    try {
+      const response = await axios.get('https://fakestoreapi.com/products');
+      setProducts(response.data);
+      setCarouselData(response.data);
+    } catch (error) {
+      setError('Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const getCartCount = async () => {
-        try {
-          const cart = await AsyncStorage.getItem('cart');
-          if (cart) {
-            const cartItems = JSON.parse(cart);
-            setCartCount(cartItems.length);
-          } else {
-            setCartCount(0);
-          }
-        } catch (error) {
-          console.error('Failed to fetch cart count:', error);
-        }
-      };
-
-      fetchProducts();
-      getCartCount();
-    }, []),
-  );
+  const getCartCount = async () => {
+    try {
+      const cart = await AsyncStorage.getItem('cart');
+      if (cart) {
+        const cartItems = JSON.parse(cart);
+        setCartCount(cartItems.length);
+      } else {
+        setCartCount(0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch cart count:', error);
+    }
+  };
 
   const filteredProducts = products.filter(product =>
     product.title.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -87,12 +77,56 @@ const HomePage = ({navigation}) => {
     </TouchableOpacity>
   );
 
-  const renderBanner = ({item}) => (
-    <Image source={item.image} style={styles.bannerImage} />
+  const renderBanner = ({item}) => {
+    return (
+      <TouchableOpacity
+        onPress={() =>
+          navigation.navigate('ProductDetailsPage', {product: item})
+        }>
+        <Image source={{uri: item.image}} style={styles.bannerImage} />
+      </TouchableOpacity>
+    );
+  };
+
+  const categories = async category => {
+    try {
+      const response =
+        category === 'all'
+          ? await axios.get(`https://fakestoreapi.com/products`)
+          : await axios.get(
+              `https://fakestoreapi.com/products/category/${category}`,
+            );
+      setProducts(response.data);
+      setActiveCategory(category);
+    } catch (_) {}
+  };
+
+  const renderCategoryItem = ({item}) => (
+    <TouchableOpacity
+      style={[
+        styles.categoryItem,
+        activeCategory === item.id && styles.activeCategory,
+      ]}
+      onPress={() => categories(item.id)}>
+      <Text
+        style={[
+          styles.categoryText,
+          {color: activeCategory === item.id ? '#fff' : '#000'},
+        ]}>
+        {item.name}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProducts();
+      getCartCount();
+    }, [navigation]),
   );
 
   return (
-    <ScrollView style={styles.container}showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -129,7 +163,7 @@ const HomePage = ({navigation}) => {
           {/* Hero Banner Carousel */}
           <View style={{marginVertical: 30}}>
             <Carousel
-              data={banners}
+              data={carouselData}
               renderItem={renderBanner}
               sliderWidth={width}
               activeSlideAlignment="center"
@@ -143,20 +177,12 @@ const HomePage = ({navigation}) => {
           {/* Category Section */}
           <View style={styles.categoryContainer}>
             <Text style={styles.sectionTitle}>Categories</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <TouchableOpacity style={styles.categoryItem}>
-                <Text style={styles.categoryText}>Men's Clothing</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.categoryItem}>
-                <Text style={styles.categoryText}>Women's Clothing</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.categoryItem}>
-                <Text style={styles.categoryText}>Electronics</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.categoryItem}>
-                <Text style={styles.categoryText}>Jewelry</Text>
-              </TouchableOpacity>
-            </ScrollView>
+            <FlatList
+              horizontal
+              data={categoriesList}
+              renderItem={renderCategoryItem}
+              showsHorizontalScrollIndicator={false}
+            />
           </View>
 
           {/* Product List */}
@@ -311,6 +337,9 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: 'red',
+  },
+  activeCategory: {
+    backgroundColor: 'green',
   },
 });
 

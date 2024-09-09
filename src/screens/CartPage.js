@@ -4,6 +4,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -44,13 +45,17 @@ const CartPage = ({navigation}) => {
   };
 
   const renderCartItem = ({item}) => (
-    <View style={styles.cartItem}>
+    <Pressable
+      style={styles.cartItem}
+      onPress={() =>
+        navigation.navigate('ProductDetailsPage', {product: item, btnkey:true})
+      }>
       <Image source={{uri: item.image}} style={styles.itemImage} />
       <View style={styles.itemDetails}>
         <Text style={styles.itemTitle}>{item.title}</Text>
         <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 
   return (
